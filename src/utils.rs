@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::Path;
 use scraper::{Html, Selector};
 use serde_json::Value;
+use crate::constants::LINEAR_CONVERSATION;
 
 pub(crate) fn get_linear_conversation(parsed_data: Value) -> String {
     parsed_data["state"]["loaderData"]["routes/share.$shareId.($action)"]
@@ -21,18 +22,15 @@ pub(crate) fn extract_json_data(chat_script_contents: &str) -> Result<&str, Box<
     }
 }
 
-pub(crate) fn save_content(output_dir: &str, body: &str, route: &str) -> Result<(), Box<dyn Error>> {
-    let html_path = Path::new(output_dir).join("main.html");
-    let mut html_file = File::create(&html_path)?;
-    html_file.write_all(body.as_bytes())?;
-
-    let json_path = Path::new(output_dir).join("script.json");
+pub(crate) fn save_content(output_dir: &str, linear_conversation: &str) -> Result<(), Box<dyn Error>> {
+    let json_data: Value = serde_json::from_str(linear_conversation)?;
+    let json_path = Path::new(output_dir).join(format!("{}.json", LINEAR_CONVERSATION));
     let mut json_file = File::create(&json_path)?;
-    json_file.write_all(route.as_bytes())?;
+    let pretty_json = serde_json::to_string_pretty(&json_data)?;
+    json_file.write_all(pretty_json.as_bytes())?;
 
     Ok(())
 }
-
 pub(crate) fn extract_title(document: &Html) -> Result<String, Box<dyn Error>> {
     let title_selector = Selector::parse("title")?;
     let title = document
@@ -57,4 +55,8 @@ pub(crate) fn extract_chat_script_contents(document: &Html) -> Result<String, Bo
         .find(";__remixContext.p = function")
         .unwrap_or_else(|| chat_script_contents.len());
     Ok(chat_script_contents[..position].to_string())
+}
+
+pub(crate) fn log_time(msg: &str) {
+    println!("[{}] {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
 }
