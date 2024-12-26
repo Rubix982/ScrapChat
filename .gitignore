@@ -1,2 +1,6 @@
 env/**/**
 chat/**/**
+.idea/**/**
+
+# Added by cargo
+/target
